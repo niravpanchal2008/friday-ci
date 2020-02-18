@@ -3,6 +3,10 @@ const path = require('path');
 const shell = require('shelljs');
 const jsonfile = require('jsonfile');
 const log4js = require('log4js');
+const chalk = require('chalk');
+const { exec } = require('child_process');
+
+process.setMaxListeners(30);
 
 const httpClient = require('./httpClient');
 
@@ -18,59 +22,56 @@ const repoList = jsonfile.readFileSync(path.join(__dirname, 'repo-list.json'));
  * @param {{release:string,workspace:string}} options 
  */
 function trigger(options) {
-    const ODP_RELEASE = options.release;
-    shell.pwd()
     for (let repo of repoList) {
         if (repo.disabled) {
             continue;
         }
-        const logPath = path.join(process.cwd(), 'logs', repo.name + '.log');
-        if (fs.existsSync(logPath)) {
-            const timestamp = Date.now();
-            shell.mv(logPath, logPath + '.' + timestamp);
-        }
-        const logger = log4js.getLogger(repo.name);
+        options.logname = Date.now();
+        const logPath = repo.name + '.' + options.logname;
+        const logger = log4js.getLogger(logPath);
+        let script = ['#!/bin/bash'];
         let CLEAN_BUILD;
         if (fs.existsSync(`CLEAN_BUILD_${repo.short.toUpperCase()}`)) {
             CLEAN_BUILD = true;
         }
         if (CLEAN_BUILD && repo.dependency && repo.dependency.length > 0) {
             for (let i = 0; i < repo.dependency.length; i++) {
-                shell.cd(options.workspace);
                 const dep = repo.dependency[i];
-                logger.info(('***********************************'));
-                logger.info((`BUILD STARTED FOR DEPENDENCY :: ${dep}`));
-                logger.info(('***********************************'));
                 const tempRepo = repoList.find(e => e.name === dep);
-                buildImage(tempRepo, options);
-                logger.info(('***********************************'));
-                logger.info((`BUILD ENDED FOR DEPENDENCY :: ${dep}`));
-                logger.info(('***********************************'));
+                script.push(`cd ${options.workspace}`);
+                script.push(`echo "${chalk.green('***********************************')}"`);
+                script.push(`echo "${chalk.green(`BUILD STARTED FOR DEPENDENCY :: ${dep}`)}"`);
+                script.push(`echo "${chalk.green('***********************************')}"`);
+                buildImage(tempRepo, options, script);
+                script.push(`echo "${chalk.green('***********************************')}"`);
+                script.push(`echo "${chalk.green(`BUILD ENDED FOR DEPENDENCY :: ${dep}`)}"`);
+                script.push(`echo "${chalk.green('***********************************')}"`);
             }
         }
-        logger.info(('***********************************'));
-        logger.info((`PROCESS STARTED FOR :: ${repo.name}`));
-        logger.info(('***********************************'));
-        const out = shell.cd(options.workspace);
-        if (out.stderr) {
-            logger.error(out.stderr);
-        } else {
-            logger.info(out.stdout);
-        }
-        buildImage(repo, options);
-        logger.info(('***********************************'));
-        logger.info((`PROCESS ENDED FOR :: ${repo.name}`));
-        logger.info(('***********************************'));
-        httpClient.post(SLACK_URL, {
-            body: {
-                text: '*' + repo.name + '* BUILD SUCCESSFUL',
-                attachments: [
-                    {
-                        title: 'Build Log',
-                        title_link: `https://cicd.odp.appveen.com/cicd/logs/${repo.name}.log`
-                    }
-                ]
-            }
+        script.push(`echo "${chalk.green('***********************************')}"`);
+        script.push(`echo "${chalk.green(`PROCESS STARTED FOR :: ${repo.name}`)}"`);
+        script.push(`echo "${chalk.green('***********************************')}"`);
+        script.push(`cd ${options.workspace}`);
+        buildImage(repo, options, script);
+        script.push(`echo "${chalk.green('***********************************')}"`);
+        script.push(`echo "${chalk.green(`PROCESS ENDED FOR :: ${repo.name}`)}"`);
+        script.push(`echo "${chalk.green('***********************************')}"`);
+        // httpClient.post(SLACK_URL, {
+        //     body: {
+        //         text: '*' + repo.name + '* BUILD SUCCESSFUL',
+        //         attachments: [
+        //             {
+        //                 title: 'Build Log',
+        //                 title_link: `https://cicd.odp.appveen.com/cicd/logs/${repo.name}.log`
+        //             }
+        //         ]
+        //     }
+        // });
+        // logger.info(script.join('\n'));
+        executeScript(script.join('\n')).then(data => {
+            logger.info(data);
+        }).catch(err => {
+            logger.error(err);
         });
     }
 }
@@ -79,8 +80,9 @@ function trigger(options) {
  * 
  * @param {{name:string,url:string,node:boolean,short:string,dependency:string[]}} repo 
  * @param {*} options 
+ * @param {string[]} script
  */
-function buildImage(repo, options) {
+function buildImage(repo, options, script) {
     const logger = log4js.getLogger(repo.name);
     const ODP_RELEASE = options.release;
     if (fs.existsSync(repo.name)) {
@@ -93,66 +95,59 @@ function buildImage(repo, options) {
             date.setDate(date.getDate() - 1);
             lastPull = date.toISOString();
         }
-        shell.cd(repo.name);
-        shell.env['WORKSPACE'] = shell.pwd();
-        shell.exec(`git stash`);
-        shell.exec(`git checkout dev`);
-        shell.exec(`git pull`);
+        script.push(`cd ${repo.name}`);
+        script.push(`git stash`);
+        script.push(`git checkout dev`);
+        script.push(`git pull`);
         if (lastPull) {
-            logger.info((''));
-            logger.info(('***********************************'));
-            logger.info((`Changes found`));
-            logger.info(('***********************************'));
-            const out = shell.exec(`git log --pretty=oneline --since="${lastPull}"`);
-            if (out.stderr) {
-                logger.error(out.stderr);
-            } else {
-                logger.info(out.stdout);
-            }
-            logger.info(('***********************************'));
-            logger.info((''));
+            script.push(`echo "${chalk.green('***********************************')}"`);
+            script.push(`echo "${chalk.green(`Changes found`)}"`);
+            script.push(`echo "${chalk.green('***********************************')}"`);
+            script.push(`git log --pretty=oneline --since="${lastPull}"`);
+            script.push(`echo "${chalk.green('***********************************')}"`);
         }
-        shell.exec(`echo ${new Date().toISOString()} > ../LAST_PULL_${repo.name.toUpperCase()}`);
+        script.push(`echo ${new Date().toISOString()} > ../LAST_PULL_${repo.name.toUpperCase()}`);
     } else {
-        shell.exec(`git clone ${repo.url}`);
-        shell.cd(repo.name);
-        shell.env['WORKSPACE'] = shell.pwd();
-        shell.exec(`git checkout dev`);
-        shell.exec(`echo ${new Date().toISOString()} > ../LAST_PULL_${repo.name.toUpperCase()}`);
+        script.push(`git clone ${repo.url}`);
+        script.push(`cd ${repo.name}`);
+        script.push(`git checkout dev`);
+        script.push(`echo ${new Date().toISOString()} > ../LAST_PULL_${repo.name.toUpperCase()}`);
     }
-    if (fs.existsSync('scripts/build_image.sh')) {
-        const out = shell.exec(`sh scripts/build_image.sh ${ODP_RELEASE}`);
-        if (out.stderr) {
-            logger.error(out.stderr);
-        } else {
-            logger.info(out.stdout);
-        }
-    } else {
-        if (fs.existsSync('scripts/build_jar.sh')) {
-            const out = shell.exec(`sh scripts/build_jar.sh`);
-            if (out.stderr) {
-                logger.error(out.stderr);
-            } else {
-                logger.info(out.stdout);
-            }
-        }
-        if (fs.existsSync('scripts/setup.sh')) {
-            const out = shell.exec(`sh scripts/setup.sh`);
-            if (out.stderr) {
-                logger.error(out.stderr);
-            } else {
-                logger.info(out.stdout);
-            }
-        }
-        if (fs.existsSync('scripts/build_executables.sh')) {
-            const out = shell.exec(`sh scripts/build_executables.sh`);
-            if (out.stderr) {
-                logger.error(out.stderr);
-            } else {
-                logger.info(out.stdout);
-            }
-        }
-    }
+    script.push(`export WORKSPACE=${options.workspace}/${repo.name}`);
+    script.push(`if [ -f scripts/build_image.sh ]; then`);
+    script.push(`  sh scripts/build_image.sh ${ODP_RELEASE} `);
+    script.push(`else`);
+    script.push(`  if [ -f scripts/build_jar.sh ]; then`);
+    script.push(`    sh scripts/build_jar.sh `);
+    script.push(`  elif [ -f scripts/setup.sh ]; then`);
+    script.push(`    sh scripts/setup.sh `);
+    script.push(`  elif [ -f scripts/build_executables.sh ]; then`);
+    script.push(`    sh scripts/build_executables.sh `);
+    script.push(`  fi`);
+    script.push(`fi`);
+}
+
+/**
+ * 
+ * @param {string} script 
+ */
+function executeScript(script) {
+    return new Promise((resolve, reject) => {
+        const data = [];
+        const p = exec(script);
+        p.stderr.on('data', function (chunk) {
+            data.push(chunk);
+        });
+        p.stdout.on('data', function (chunk) {
+            data.push(chunk);
+        });
+        p.stdout.on('end', function () {
+            resolve(data.join('').toString());
+        });
+        p.stdout.on('error', function (err) {
+            reject(err.message);
+        });
+    });
 }
 
 module.exports.trigger = trigger;

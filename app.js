@@ -1,11 +1,9 @@
-const os = require('os');
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
 const log4js = require('log4js');
 const schedule = require('node-schedule');
-const shell = require('shelljs');
 const mkdirp = require('mkdirp');
 const dotenv = require('dotenv');
 
@@ -71,7 +69,7 @@ app.use((req, res, next) => {
     next();
 });
 
-if(process.env.NODE_ENV !== 'production'){
+if (process.env.NODE_ENV !== 'production') {
     app.get('/cicd/test', (req, res) => {
         res.status(200).json({
             message: 'Build Started'
@@ -152,10 +150,11 @@ app.put('/cicd/cleanBuild', (req, res) => {
         req.body.repoList.forEach(name => {
             const repo = repoList.find(e => e.name == name);
             if (repo) {
-                shell.cd(path.join(global.workspace, repo.name));
-                shell.touch('CLEAR_BUILD_' + repo.short);
-                shell.cd(global.workspace);
+                fs.writeFileSync(path.join(global.workspace, 'CLEAR_BUILD_' + repo.short), 'true', 'utf-8');
             }
+        });
+        res.status(200).json({
+            message: 'Clean Build Configured'
         });
     } catch (e) {
         logger.error(e);
