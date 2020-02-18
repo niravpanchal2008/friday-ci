@@ -30,9 +30,19 @@ spec:
         app: cicd
         release: 1.0.0
     spec:
+      volumes:
+        - name: logs
+          hostPath:
+            path: /opt/cicd/logs
       containers:
         - name: cicd
           image: 'appveen/cicd:1.0.0'
           ports:
             - containerPort: 8080
+          env:
+          - name: SLACK_URL
+            value: "https://hooks.slack.com/services/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"
+          volumeMounts:
+            - name: logs
+              mountPath: /app/logs
 
