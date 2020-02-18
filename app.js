@@ -1,23 +1,39 @@
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
-const chalk = require('chalk');
 const express = require('express');
 const bodyParser = require('body-parser');
 const log4js = require('log4js');
 const schedule = require('node-schedule');
 const shell = require('shelljs');
+const mkdirp = require('mkdirp');
+const dotenv = require('dotenv');
+
+if (process.env.NODE_ENV !== 'production') {
+    dotenv.config();
+}
 
 const buildUtils = require('./build');
 
 const PORT = process.env.PORT || 8080;
 const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
-const RELEASE = process.env.RELEASE || 'info';
+const WORKSPACE = process.env.WORKSPACE;
+let RELEASE = process.env.RELEASE;
 
 const logger = log4js.getLogger('cicd-server');
 let job;
 
-global.workspace = path.join(os.homedir(), 'cicd');
+global.workspace = WORKSPACE || path.join(os.homedir(), 'cicd');
+mkdirp.sync(global.workspace);
+if (!RELEASE && fs.existsSync(path.join(global.workspace, 'RELEASE'))) {
+    const data = fs.readFileSync(path.join(global.workspace, 'RELEASE'), 'utf-8');
+    if (data) {
+        RELEASE = data;
+    }
+}
+if (!RELEASE) {
+    RELEASE = 'beta';
+}
 
 log4js.configure({
     appenders: { 'out': { type: 'stdout' }, server: { type: 'multiFile', base: 'logs/', property: 'categoryName', extension: '.log', maxLogSize: 10485760, backups: 3, compress: true } },
@@ -25,29 +41,29 @@ log4js.configure({
 });
 
 if (!process.env.JAVA_HOME) {
-    logger.info(chalk.red('**********************************************'));
-    logger.info(chalk.red('JAVA_HOME not found, please set JAVA_HOME'));
-    logger.info(chalk.red('**********************************************'));
+    logger.error(('**********************************************'));
+    logger.error(('JAVA_HOME not found, please set JAVA_HOME'));
+    logger.error(('**********************************************'));
     process.exit();
 }
 
 if (!process.env.MAVEN_HOME) {
-    logger.info(chalk.red('**********************************************'));
-    logger.info(chalk.red('MAVEN_HOME not found, please set MAVEN_HOME'));
-    logger.info(chalk.red('**********************************************'));
+    logger.error(('**********************************************'));
+    logger.error(('MAVEN_HOME not found, please set MAVEN_HOME'));
+    logger.error(('**********************************************'));
     process.exit();
 }
 
 if (!process.env.M2_HOME) {
-    logger.info(chalk.red('**********************************************'));
-    logger.info(chalk.red('M2_HOME not found, please set M2_HOME'));
-    logger.info(chalk.red('**********************************************'));
+    logger.error(('**********************************************'));
+    logger.error(('M2_HOME not found, please set M2_HOME'));
+    logger.error(('**********************************************'));
     process.exit();
 }
 
 const app = express();
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'logs')));
 app.use(bodyParser.json());
 
 app.use((req, res, next) => {
@@ -55,11 +71,17 @@ app.use((req, res, next) => {
     next();
 });
 
-app.get('/cicd/:id', (req, res) => {
-    res.status(200).json({
-        message: 'Fetched'
+if(process.env.NODE_ENV !== 'production'){
+    app.get('/cicd/test', (req, res) => {
+        res.status(200).json({
+            message: 'Build Started'
+        });
+        buildUtils.trigger({
+            release: RELEASE,
+            workspace: global.workspace
+        });
     });
-});
+}
 
 app.post('/cicd/schedule', (req, res) => {
     try {
@@ -71,7 +93,8 @@ app.post('/cicd/schedule', (req, res) => {
         if (req.body.cron) {
             cron = req.body.cron;
         }
-        job = schedule.scheduleJob(cron, function () {
+        job = schedule.scheduleJob(cron, function (fireDate) {
+            logger.info('Build Started AT:', fireDate);
             buildUtils.trigger({
                 release: RELEASE,
                 workspace: global.workspace

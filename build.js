@@ -1,9 +1,12 @@
 const fs = require('fs');
 const path = require('path');
-const chalk = require('chalk');
 const shell = require('shelljs');
 const jsonfile = require('jsonfile');
 const log4js = require('log4js');
+
+const httpClient = require('./httpClient');
+
+const SLACK_URL = process.env.SLACK_URL;
 
 /**
  * @type {[{name:string,url:string,node:boolean,short:string,dependency:string[]}]}
@@ -21,6 +24,11 @@ function trigger(options) {
         if (repo.disabled) {
             continue;
         }
+        const logPath = path.join(process.cwd(), 'logs', repo.name + '.log');
+        if (fs.existsSync(logPath)) {
+            const timestamp = Date.now();
+            shell.mv(logPath, logPath + '.' + timestamp);
+        }
         const logger = log4js.getLogger(repo.name);
         let CLEAN_BUILD;
         if (fs.existsSync(`CLEAN_BUILD_${repo.short.toUpperCase()}`)) {
@@ -30,26 +38,41 @@ function trigger(options) {
             for (let i = 0; i < repo.dependency.length; i++) {
                 shell.cd(options.workspace);
                 const dep = repo.dependency[i];
-                logger.info(chalk.green('***********************************'));
-                logger.info(chalk.green(`BUILD STARTED FOR DEPENDENCY :: ${dep}`));
-                logger.info(chalk.green('***********************************'));
+                logger.info(('***********************************'));
+                logger.info((`BUILD STARTED FOR DEPENDENCY :: ${dep}`));
+                logger.info(('***********************************'));
                 const tempRepo = repoList.find(e => e.name === dep);
                 buildImage(tempRepo, options);
-                logger.info(chalk.green('***********************************'));
-                logger.info(chalk.green(`BUILD ENDED FOR DEPENDENCY :: ${dep}`));
-                logger.info(chalk.green('***********************************'));
+                logger.info(('***********************************'));
+                logger.info((`BUILD ENDED FOR DEPENDENCY :: ${dep}`));
+                logger.info(('***********************************'));
             }
         }
-        logger.info(chalk.green('***********************************'));
-        logger.info(chalk.green(`PROCESS STARTED FOR :: ${repo.name}`));
-        logger.info(chalk.green('***********************************'));
-        shell.cd(options.workspace);
+        logger.info(('***********************************'));
+        logger.info((`PROCESS STARTED FOR :: ${repo.name}`));
+        logger.info(('***********************************'));
+        const out = shell.cd(options.workspace);
+        if (out.stderr) {
+            logger.error(out.stderr);
+        } else {
+            logger.info(out.stdout);
+        }
         buildImage(repo, options);
-        logger.info(chalk.green('***********************************'));
-        logger.info(chalk.green(`PROCESS ENDED FOR :: ${repo.name}`));
-        logger.info(chalk.green('***********************************'));
+        logger.info(('***********************************'));
+        logger.info((`PROCESS ENDED FOR :: ${repo.name}`));
+        logger.info(('***********************************'));
+        httpClient.post(SLACK_URL, {
+            body: {
+                text: '*' + repo.name + '* BUILD SUCCESSFUL',
+                attachments: [
+                    {
+                        title: 'Build Log',
+                        title_link: `https://cicd.odp.appveen.com/cicd/logs/${repo.name}.log`
+                    }
+                ]
+            }
+        });
     }
-    // saveOtherImages(options);
 }
 
 /**
@@ -76,13 +99,18 @@ function buildImage(repo, options) {
         shell.exec(`git checkout dev`);
         shell.exec(`git pull`);
         if (lastPull) {
-            logger.info(chalk.green(''));
-            logger.info(chalk.green('***********************************'));
-            logger.info(chalk.green(`Changes found`));
-            logger.info(chalk.green('***********************************'));
-            shell.exec(`git log --pretty=oneline --since="${lastPull}"`);
-            logger.info(chalk.green('***********************************'));
-            logger.info(chalk.green(''));
+            logger.info((''));
+            logger.info(('***********************************'));
+            logger.info((`Changes found`));
+            logger.info(('***********************************'));
+            const out = shell.exec(`git log --pretty=oneline --since="${lastPull}"`);
+            if (out.stderr) {
+                logger.error(out.stderr);
+            } else {
+                logger.info(out.stdout);
+            }
+            logger.info(('***********************************'));
+            logger.info((''));
         }
         shell.exec(`echo ${new Date().toISOString()} > ../LAST_PULL_${repo.name.toUpperCase()}`);
     } else {
@@ -93,16 +121,36 @@ function buildImage(repo, options) {
         shell.exec(`echo ${new Date().toISOString()} > ../LAST_PULL_${repo.name.toUpperCase()}`);
     }
     if (fs.existsSync('scripts/build_image.sh')) {
-        shell.exec(`sh scripts/build_image.sh ${ODP_RELEASE}`);
+        const out = shell.exec(`sh scripts/build_image.sh ${ODP_RELEASE}`);
+        if (out.stderr) {
+            logger.error(out.stderr);
+        } else {
+            logger.info(out.stdout);
+        }
     } else {
         if (fs.existsSync('scripts/build_jar.sh')) {
-            shell.exec(`sh scripts/build_jar.sh`);
+            const out = shell.exec(`sh scripts/build_jar.sh`);
+            if (out.stderr) {
+                logger.error(out.stderr);
+            } else {
+                logger.info(out.stdout);
+            }
         }
         if (fs.existsSync('scripts/setup.sh')) {
-            shell.exec(`sh scripts/setup.sh`);
+            const out = shell.exec(`sh scripts/setup.sh`);
+            if (out.stderr) {
+                logger.error(out.stderr);
+            } else {
+                logger.info(out.stdout);
+            }
         }
         if (fs.existsSync('scripts/build_executables.sh')) {
-            shell.exec(`sh scripts/build_executables.sh`);
+            const out = shell.exec(`sh scripts/build_executables.sh`);
+            if (out.stderr) {
+                logger.error(out.stderr);
+            } else {
+                logger.info(out.stdout);
+            }
         }
     }
 }
