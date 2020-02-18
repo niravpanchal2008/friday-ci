@@ -23,7 +23,7 @@ let RELEASE = process.env.RELEASE;
 const logger = log4js.getLogger('cicd-server');
 let job;
 
-global.workspace = WORKSPACE || path.join(os.homedir(), 'cicd');
+global.workspace = WORKSPACE || path.join(process.cwd(), 'workspace');
 mkdirp.sync(global.workspace);
 if (!RELEASE && fs.existsSync(path.join(global.workspace, 'RELEASE'))) {
     const data = fs.readFileSync(path.join(global.workspace, 'RELEASE'), 'utf-8');
