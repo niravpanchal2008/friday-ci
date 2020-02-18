@@ -1,0 +1,104 @@
+[
+    {
+        "name": "govault",
+        "url": "git@github.com:appveen/govault.git",
+        "disabled": "We don't release this."
+    },
+    {
+        "name": "odp-b2b-agent-watcher",
+        "url": "git@bitbucket.org:appveen/odp-b2b-agent-watcher.git",
+        "disabled": "We don't release this."
+    },
+    {
+        "name": "odp-releasebuild",
+        "url": "git@bitbucket.org:appveen/odp-releasebuild.git",
+        "disabled": "We don't release this."
+    },
+    {
+        "name": "odp-b2b-agent",
+        "url": "git@bitbucket.org:appveen/odp-b2b-agent.git",
+        "short":"B2BGW",
+        "dependency":[
+            "odp-b2b-agent-watcher",
+            "govault"
+        ]
+    },
+    {
+        "name": "odp-b2b-backend-generator",
+        "url": "git@bitbucket.org:appveen/odp-b2b-backend-generator.git",
+        "short":"B2B"
+    },
+    {
+        "name": "odp-b2b-partner-manager",
+        "url": "git@bitbucket.org:appveen/odp-b2b-partner-manager.git",
+        "short":"PM",
+        "dependency":[
+            "odp-b2b-agent"
+        ]
+    },
+    {
+        "name": "odp-deployment-manager",
+        "url": "git@bitbucket.org:appveen/odp-deployment-manager.git",
+        "short":"DM"
+    },
+    {
+        "name": "odp-gateway",
+        "url": "git@bitbucket.org:appveen/odp-gateway.git",
+        "short":"GW"
+    },
+    {
+        "name": "odp-monitoring",
+        "url": "git@bitbucket.org:appveen/odp-monitoring.git",
+        "short":"MON"
+    },
+    {
+        "name": "odp-notification-engine",
+        "url": "git@bitbucket.org:appveen/odp-notification-engine.git",
+        "short":"NE"
+    },
+    {
+        "name": "odp-security",
+        "url": "git@bitbucket.org:appveen/odp-security.git",
+        "short":"SEC"
+    },
+    {
+        "name": "odp-service-manager",
+        "url": "git@bitbucket.org:appveen/odp-service-manager.git",
+        "short":"SM"
+    },
+    {
+        "name": "odp-workflow",
+        "url": "git@bitbucket.org:appveen/odp-workflow.git",
+        "short":"WF"
+    },
+    {
+        "name": "odp-ui-appcenter",
+        "url": "git@bitbucket.org:appveen/odp-ui-appcenter.git",
+        "short":"APPCENTER"
+    },
+    {
+        "name": "odp-ui-author",
+        "url": "git@bitbucket.org:appveen/odp-ui-author.git",
+        "short":"AUTHOR"
+    },
+    {
+        "name": "odp-ui-swagger",
+        "url": "git@bitbucket.org:appveen/odp-ui-swagger.git",
+        "short":"SWAGGER"
+    },
+    {
+        "name": "odp-user-management",
+        "url": "git@bitbucket.org:appveen/odp-user-management.git",
+        "short":"USER"
+    },
+    {
+        "name": "odp-proxy",
+        "url": "git@bitbucket.org:appveen/odp-proxy.git",
+        "short":"NGINX",
+        "dependency":[
+            "odp-ui-author",
+            "odp-ui-appcenter",
+            "odp-ui-swagger"
+        ]
+    }
+]
