@@ -54,12 +54,12 @@ if (!process.env.MAVEN_HOME) {
     process.exit();
 }
 
-if (!process.env.M2_HOME) {
-    logger.error(('**********************************************'));
-    logger.error(('M2_HOME not found, please set M2_HOME'));
-    logger.error(('**********************************************'));
-    process.exit();
-}
+// if (!process.env.M2_HOME) {
+//     logger.error(('**********************************************'));
+//     logger.error(('M2_HOME not found, please set M2_HOME'));
+//     logger.error(('**********************************************'));
+//     process.exit();
+// }
 
 const app = express();
 
