@@ -1,9 +1,10 @@
+const { workerData, parentPort } = require('worker_threads')
 const fs = require('fs');
 const path = require('path');
 const jsonfile = require('jsonfile');
 const log4js = require('log4js');
 const chalk = require('chalk');
-const { exec, execSync } = require('child_process');
+const { spawn } = require('child_process');
 
 process.setMaxListeners(30);
 
@@ -16,47 +17,57 @@ const SLACK_URL = process.env.SLACK_URL;
  */
 const repoList = jsonfile.readFileSync(path.join(__dirname, 'repo-list.json'));
 
-/**
- * 
- * @param {{release:string,workspace:string}} options 
- */
-function trigger(options) {
-    for (let repo of repoList) {
-        if (repo.disabled) {
-            continue;
+// /**
+//  * 
+//  * @param {{release:string,workspace:string}} options 
+//  */
+// function trigger(options) {
+const options = workerData;
+for (let repo of repoList) {
+    if (repo.disabled) {
+        continue;
+    }
+    options.logname = Date.now();
+    const logPath = repo.name + '.' + options.logname;
+    // const logger = log4js.getLogger(logPath);
+    let script = ['#!/bin/bash'];
+    let CLEAN_BUILD;
+    if (fs.existsSync(`CLEAN_BUILD_${repo.short.toUpperCase()}`)) {
+        CLEAN_BUILD = true;
+    }
+    if (CLEAN_BUILD && repo.dependency && repo.dependency.length > 0) {
+        for (let i = 0; i < repo.dependency.length; i++) {
+            const dep = repo.dependency[i];
+            const tempRepo = repoList.find(e => e.name === dep);
+            script.push(`cd ${options.workspace}`);
+            script.push(`echo "${chalk.green('***********************************')}"`);
+            script.push(`echo "${chalk.green(`BUILD STARTED FOR DEPENDENCY :: ${dep}`)}"`);
+            script.push(`echo "${chalk.green('***********************************')}"`);
+            buildImage(tempRepo, options, script);
+            script.push(`echo "${chalk.green('***********************************')}"`);
+            script.push(`echo "${chalk.green(`BUILD ENDED FOR DEPENDENCY :: ${dep}`)}"`);
+            script.push(`echo "${chalk.green('***********************************')}"`);
         }
-        options.logname = Date.now();
-        const logPath = repo.name + '.' + options.logname;
-        const logger = log4js.getLogger(logPath);
-        let script = ['#!/bin/bash'];
-        let CLEAN_BUILD;
-        if (fs.existsSync(`CLEAN_BUILD_${repo.short.toUpperCase()}`)) {
-            CLEAN_BUILD = true;
-        }
-        if (CLEAN_BUILD && repo.dependency && repo.dependency.length > 0) {
-            for (let i = 0; i < repo.dependency.length; i++) {
-                const dep = repo.dependency[i];
-                const tempRepo = repoList.find(e => e.name === dep);
-                script.push(`cd ${options.workspace}`);
-                script.push(`echo "${chalk.green('***********************************')}"`);
-                script.push(`echo "${chalk.green(`BUILD STARTED FOR DEPENDENCY :: ${dep}`)}"`);
-                script.push(`echo "${chalk.green('***********************************')}"`);
-                buildImage(tempRepo, options, script);
-                script.push(`echo "${chalk.green('***********************************')}"`);
-                script.push(`echo "${chalk.green(`BUILD ENDED FOR DEPENDENCY :: ${dep}`)}"`);
-                script.push(`echo "${chalk.green('***********************************')}"`);
-            }
-        }
-        script.push(`echo "${chalk.green('***********************************')}"`);
-        script.push(`echo "${chalk.green(`PROCESS STARTED FOR :: ${repo.name}`)}"`);
-        script.push(`echo "${chalk.green('***********************************')}"`);
-        script.push(`cd ${options.workspace}`);
-        buildImage(repo, options, script);
-        script.push(`echo "${chalk.green('***********************************')}"`);
-        script.push(`echo "${chalk.green(`PROCESS ENDED FOR :: ${repo.name}`)}"`);
-        script.push(`echo "${chalk.green('***********************************')}"`);
-        const logs = execSync(script.join('\n'));
-        logger.info(logs);
+    }
+    script.push(`echo "${chalk.green('***********************************')}"`);
+    script.push(`echo "${chalk.green(`PROCESS STARTED FOR :: ${repo.name}`)}"`);
+    script.push(`echo "${chalk.green('***********************************')}"`);
+    script.push(`cd ${options.workspace}`);
+    buildImage(repo, options, script);
+    script.push(`echo "${chalk.green('***********************************')}"`);
+    script.push(`echo "${chalk.green(`PROCESS ENDED FOR :: ${repo.name}`)}"`);
+    script.push(`echo "${chalk.green('***********************************')}"`);
+    const logs = spawn(script.join('\n'), {
+        shell: true
+    });
+    fs.writeFileSync(path.join('./logs', logPath + '.log'), '');
+    logs.stderr.on('data', function (chunk) {
+        fs.appendFileSync(path.join('./logs', logPath + '.log'), chunk);
+    });
+    logs.stdout.on('data', function (chunk) {
+        fs.appendFileSync(path.join('./logs', logPath + '.log'), chunk);
+    });
+    logs.on('exit', function (chunk) {
         httpClient.post(SLACK_URL, {
             body: {
                 text: '*' + repo.name + '* BUILD SUCCESSFUL',
@@ -68,12 +79,13 @@ function trigger(options) {
                 ]
             }
         }).then(data => {
-            logger.info(data);
+            fs.appendFileSync(path.join('./logs', logPath + '.log'), data);
         }).catch(err => {
-            logger.error(err);
+            fs.appendFileSync(path.join('./logs', logPath + '.log'), err);
         });
-    }
+    });
 }
+// }
 
 /**
  * 
@@ -82,7 +94,6 @@ function trigger(options) {
  * @param {string[]} script
  */
 function buildImage(repo, options, script) {
-    const logger = log4js.getLogger(repo.name);
     const ODP_RELEASE = options.release;
     if (fs.existsSync(repo.name)) {
         let lastPull;
@@ -148,5 +159,3 @@ function executeScript(script) {
         });
     });
 }
-
-module.exports.trigger = trigger;

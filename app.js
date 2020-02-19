@@ -6,6 +6,7 @@ const log4js = require('log4js');
 const schedule = require('node-schedule');
 const mkdirp = require('mkdirp');
 const dotenv = require('dotenv');
+const { Worker } = require('worker_threads');
 
 if (process.env.NODE_ENV !== 'production') {
     dotenv.config();
@@ -74,12 +75,28 @@ if (process.env.NODE_ENV !== 'production') {
         res.status(200).json({
             message: 'Build Started'
         });
-        buildUtils.trigger({
-            release: RELEASE,
-            workspace: global.workspace
+        const worker = new Worker('./thread-build.js', {
+            workerData: {
+                release: RELEASE,
+                workspace: global.workspace
+            },
+            stdout: true
+        });
+        worker.stdout.on('data', function (chunk) {
+
+        });
+        worker.stdout.on('end', function () {
+
         });
     });
 }
+
+app.get('/cicd', (req, res) => {
+    const files = fs.readdirSync(path.join(__dirname, 'logs'));
+    let html = `<ul>${files.map(e => `<li><a href="/${e}">${e}</a></li>`).join('\n')}</ul>`
+    res.header('Content-Type','text/html');
+    res.status(200).end(html);
+});
 
 app.post('/cicd/schedule', (req, res) => {
     try {
