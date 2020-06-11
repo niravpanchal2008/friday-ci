@@ -2,7 +2,7 @@
 
 set -e
 
-GITHUB_URL=https://github.com/appveen/orcli/build-client
+GITHUB_URL=https://github.com/appveen/friday-ci/build-client
 
 info()
 {
