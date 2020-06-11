@@ -2,9 +2,7 @@
 
 set -e
 
-GITHUB_URL=https://github.com/appveen/friday-ci/tree/master/build-client
-
-
+GITHUB_URL="https://github.com/appveen/friday-ci/tree/master/build-client"
 
 cd /lib/systemd/system
 echo "Fetching Service............"
