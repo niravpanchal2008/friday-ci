@@ -2,7 +2,7 @@
 
 set -e
 
-GITHUB_URL=https://github.com/appveen/friday-ci/build-client
+GITHUB_URL=https://github.com/appveen/friday-ci/tree/master/build-client
 
 
 
