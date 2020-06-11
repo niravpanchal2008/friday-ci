@@ -4,26 +4,13 @@ set -e
 
 GITHUB_URL=https://github.com/appveen/friday-ci/build-client
 
-info()
-{
-    echo '[INFO] ' "$@"
-}
-warn()
-{
-    echo '[WARN] ' "$@" >&2
-}
-fatal()
-{
-    echo '[ERROR] ' "$@" >&2
-    exit 1
-}
 
 
 cd /lib/systemd/system
-info('Fetching Service............')
+echo "Fetching Service............"
 wget -qO $GITHUB_URL/orcli.service
 
-info('Installing Service..........')
+echo "Installing Service.........."
 cd /usr/bin
 wget -qO $GITHUB_URL/orcli-service
-info('=============== Install Completed ===============')
+echo "=============== Install Completed ==============="
