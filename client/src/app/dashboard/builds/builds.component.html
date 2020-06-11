@@ -1,0 +1,68 @@
+<div class="wrapper">
+  <div class="search-block"></div>
+  <div class="table-wrapper">
+    <table class="table table-sm table-bordered">
+      <tr>
+        <th>#</th>
+        <th>Repo</th>
+        <th>Branch</th>
+        <th>Status</th>
+        <th>Started</th>
+        <th>Ended</th>
+        <th>Tag</th>
+        <th>Actions</th>
+      </tr>
+      <tr *ngFor="let item of buildList">
+        <td>{{item._id}}</td>
+        <td>{{item.repo}}</td>
+        <td>{{item.branch}}</td>
+        <td [ngClass]="{'text-success':item.status=='Success','text-warning':item.status=='Processing'}">
+          {{item.status}}
+        </td>
+        <td>{{item.started | date:'yyy-MM-dd HH:mm:ss'}}</td>
+        <td>{{item.ended | date:'yyy-MM-dd HH:mm:ss'}}</td>
+        <td>{{item.tag}}</td>
+        <td>
+          <button type="button" class="btn btn-link" (click)="selectedLog=item">Logs</button>
+        </td>
+      </tr>
+      <tr *ngIf="buildList.length==0">
+        <td colspan="8">No Records Found</td>
+      </tr>
+    </table>
+  </div>
+  <nav *ngIf="buildList.length>30">
+    <ul class="pagination">
+      <li class="page-item">
+        <a class="page-link" href="#" aria-label="Previous">
+          <span aria-hidden="true">&laquo;</span>
+          <span class="sr-only">Previous</span>
+        </a>
+      </li>
+      <li class="page-item"><a class="page-link" href="#">1</a></li>
+      <li class="page-item"><a class="page-link" href="#">2</a></li>
+      <li class="page-item"><a class="page-link" href="#">3</a></li>
+      <li class="page-item">
+        <a class="page-link" href="#" aria-label="Next">
+          <span aria-hidden="true">&raquo;</span>
+          <span class="sr-only">Next</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
+</div>
+
+<div class="logs-modal position-fixed bg-white border-left position-relative" [ngClass]="{'show': selectedLog}">
+  <div class="header d-flex align-items-center justify-content-between bg-success text-white p-2">
+    <span class="font-weight-bold">Logs</span>
+    <div class="d-flex align-items-center">
+      <button type="button" class="btn btn-link text-white mr-3" (click)="refresh()">Refresh</button>
+      <button type="button" class="btn btn-link text-white" (click)="selectedLog=null;">Close</button>
+    </div>
+  </div>
+  <pre #consoleWindow *ngIf="logs" class="logs p-2" [innerHTML]="logs"></pre>
+  <!-- <pre class="logs p-2">{{logs}}</pre> -->
+  <div *ngIf="selectedLog?.status=='Processing'" class="logs-spinner position-absolute">
+    <span class="fa fa-spinner fa-pulse"></span>
+  </div>
+</div>

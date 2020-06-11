@@ -1,0 +1,15 @@
+[Unit]
+Description=ORCLI Client
+Documentation=https://orcli.odp.appveen.com
+After=network.target
+
+[Service]
+Environment=NODE_PORT=8000
+Environment=NODE_ENV=production
+Type=simple
+User=root
+ExecStart=/usr/bin/orcli-client
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

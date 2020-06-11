@@ -1,0 +1,94 @@
+<div class="wrapper">
+  <div class="search-block p-3">
+    <button type="button" class="btn btn-primary" (click)="openCreateMachineModal()">New Machine</button>
+  </div>
+  <div class="table-wrapper">
+    <table class="table table-sm table-bordered">
+      <tr>
+        <th>#</th>
+        <th>Name</th>
+        <th>IP</th>
+        <th>PORT</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+      <tr *ngFor="let item of machineList">
+        <td>{{item._id}}</td>
+        <td>{{item.name}}</td>
+        <td>{{item.ip}}</td>
+        <td>{{item.port}}</td>
+        <td>{{item.status}}</td>
+        <td>
+          <button type="button" class="btn btn-link" (click)="getMachineStatus(item)">Refresh Status</button>
+          <button type="button" class="btn btn-link text-danger" (click)="openDeleteMachineModal(item)">Delete</button>
+        </td>
+      </tr>
+      <tr *ngIf="machineList.length==0">
+        <td colspan="6">No Records Found</td>
+      </tr>
+    </table>
+  </div>
+  <nav *ngIf="machineList.length>30">
+    <ul class="pagination">
+      <li class="page-item">
+        <a class="page-link" href="#" aria-label="Previous">
+          <span aria-hidden="true">&laquo;</span>
+          <span class="sr-only">Previous</span>
+        </a>
+      </li>
+      <li class="page-item"><a class="page-link" href="#">1</a></li>
+      <li class="page-item"><a class="page-link" href="#">2</a></li>
+      <li class="page-item"><a class="page-link" href="#">3</a></li>
+      <li class="page-item">
+        <a class="page-link" href="#" aria-label="Next">
+          <span aria-hidden="true">&raquo;</span>
+          <span class="sr-only">Next</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
+</div>
+
+
+<ng-template #createMachineModel>
+  <div class="modal-header">
+    <div class="modal-title font-weight-bold">Create New Machine</div>
+  </div>
+  <div class="modal-body">
+    <form [formGroup]="form">
+      <div class="form-group">
+        <label for="name">Name</label>
+        <input type="text" class="form-control" name="name" formControlName="name"
+          [ngClass]="{'is-invalid': form.get('name').invalid}">
+      </div>
+      <div class="form-group">
+        <label for="ip">IP</label>
+        <input type="text" class="form-control" name="ip" formControlName="ip"
+          [ngClass]="{'is-invalid': form.get('ip').invalid}">
+      </div>
+      <div class="form-group">
+        <label for="port">Port</label>
+        <input type="text" class="form-control" name="port" formControlName="port"
+          [ngClass]="{'is-invalid': form.get('port').invalid}">
+      </div>
+    </form>
+  </div>
+  <div class="modal-footer d-flex justify-content-end p-3">
+    <button type="button" class="btn btn-dark mr-3" (click)="createMachineModelRef.close(false)">Cancel</button>
+    <button type="button" class="btn btn-primary" (click)="triggerCreate()" [disabled]="form.invalid">Create</button>
+  </div>
+</ng-template>
+
+
+<ng-template #deleteMachineModel>
+  <div class="modal-header">
+    <div class="modal-title font-weight-bold">Delete Machine - <span class="text-danger">{{selectedMachine?.name}}</span></div>
+  </div>
+  <div class="modal-body">
+    <p>Are you sure you want to delete machine: <span class="font-weight-bold text-danger">{{selectedMachine?.name}}</span></p>
+  </div>
+  <div class="modal-footer d-flex justify-content-end p-3">
+    <button type="button" class="btn btn-dark mr-3" (click)="deleteMachineModelRef.close(false)">Cancel</button>
+    <button type="button" class="btn btn-danger" (click)="triggerDelete()">Delete</button>
+  </div>
+</ng-template>

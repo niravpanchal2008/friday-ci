@@ -1,0 +1,120 @@
+<div class="wrapper">
+  <div class="search-block p-3">
+    <button type="button" class="btn btn-primary" (click)="openCreateTaskModal()">New Task</button>
+  </div>
+  <div class="table-wrapper">
+    <table class="table table-sm table-bordered">
+      <tr>
+        <th>#</th>
+        <th>Name</th>
+        <th>Scheduled</th>
+        <th>Status</th>
+        <th>Last Build</th>
+        <th>Actions</th>
+      </tr>
+      <tr *ngFor="let item of taskList">
+        <td>{{item._id}}</td>
+        <td>{{item.name}}</td>
+        <td>{{item.scheduled}}</td>
+        <td>{{item.status}}</td>
+        <td>{{item.lastBuild}}</td>
+        <td>
+          <button type="button" class="btn btn-link" (click)="openBuildTaskModal(item)">Build Now</button>
+          <button type="button" class="btn btn-link text-danger" (click)="openDeleteTaskModal(item)">Delete</button>
+        </td>
+      </tr>
+      <tr *ngIf="taskList.length==0">
+        <td colspan="8">No Records Found</td>
+      </tr>
+    </table>
+  </div>
+  <nav *ngIf="taskList.length>30">
+    <ul class="pagination">
+      <li class="page-item">
+        <a class="page-link" href="#" aria-label="Previous">
+          <span aria-hidden="true">&laquo;</span>
+          <span class="sr-only">Previous</span>
+        </a>
+      </li>
+      <li class="page-item"><a class="page-link" href="#">1</a></li>
+      <li class="page-item"><a class="page-link" href="#">2</a></li>
+      <li class="page-item"><a class="page-link" href="#">3</a></li>
+      <li class="page-item">
+        <a class="page-link" href="#" aria-label="Next">
+          <span aria-hidden="true">&raquo;</span>
+          <span class="sr-only">Next</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
+</div>
+
+
+<ng-template #createTaskModel>
+  <div class="modal-header">
+    <div class="modal-title font-weight-bold">Create New Task</div>
+  </div>
+  <div class="modal-body">
+    <form [formGroup]="form">
+      <div class="form-group">
+        <label for="name">Name</label>
+        <input type="text" class="form-control" name="name" formControlName="name"
+          [ngClass]="{'is-invalid': form.get('name').invalid}">
+      </div>
+      <div class="form-group">
+        <label for="repo">Repo</label>
+        <input type="text" class="form-control" name="repo" formControlName="repo"
+          [ngClass]="{'is-invalid': form.get('repo').invalid}">
+      </div>
+      <div class="form-group">
+        <label for="branch">Branch</label>
+        <input type="text" class="form-control" name="branch" formControlName="branch"
+          [ngClass]="{'is-invalid': form.get('branch').invalid}">
+      </div>
+      <div class="form-group">
+        <label for="cron">CRON</label>
+        <input type="text" class="form-control" name="cron" formControlName="cron">
+      </div>
+      <div class="form-group">
+        <label for="script">Script</label>
+        <textarea id="script" class="form-control" name="script" formControlName="script" cols="30" rows="6"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="sshKey">SSH Key</label>
+        <textarea id="sshKey" class="form-control" name="sshKey" formControlName="sshKey" cols="30" rows="6"></textarea>
+      </div>
+    </form>
+  </div>
+  <div class="modal-footer d-flex justify-content-end p-3">
+    <button type="button" class="btn btn-dark mr-3" (click)="createTaskModelRef.close(false)">Cancel</button>
+    <button type="button" class="btn btn-primary" (click)="triggerCreate()" [disabled]="form.invalid">Create</button>
+  </div>
+</ng-template>
+
+
+<ng-template #deleteTaskModel>
+  <div class="modal-header">
+    <div class="modal-title font-weight-bold">Delete Task - <span class="text-danger">{{selectedTask?.name}}</span></div>
+  </div>
+  <div class="modal-body">
+    <p>Are you sure you want to delete task: <span class="font-weight-bold text-danger">{{selectedTask?.name}}</span></p>
+  </div>
+  <div class="modal-footer d-flex justify-content-end p-3">
+    <button type="button" class="btn btn-dark mr-3" (click)="deleteTaskModelRef.close(false)">Cancel</button>
+    <button type="button" class="btn btn-danger" (click)="triggerDelete()">Delete</button>
+  </div>
+</ng-template>
+
+
+<ng-template #buildTaskModel>
+  <div class="modal-header">
+    <div class="modal-title font-weight-bold">Build Task - <span class="text-primary">{{selectedTask?.name}}</span></div>
+  </div>
+  <div class="modal-body">
+    <p>Are you sure you want to build task: <span class="font-weight-bold text-primary">{{selectedTask?.name}}</span></p>
+  </div>
+  <div class="modal-footer d-flex justify-content-end p-3">
+    <button type="button" class="btn btn-dark mr-3" (click)="buildTaskModelRef.close(false)">Cancel</button>
+    <button type="button" class="btn btn-primary" (click)="triggerBuild()">Build</button>
+  </div>
+</ng-template>

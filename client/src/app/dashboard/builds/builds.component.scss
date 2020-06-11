@@ -1,0 +1,40 @@
+@import "src/assets/bootstarp/_functions";
+@import "src/assets/bootstarp/_variables";
+@import "src/my-variables";
+
+$logs-modal-width: 70vw;
+
+.wrapper {
+  overflow-y: auto;
+  max-height: calc(100vh - #{$header-height});
+}
+
+.logs-modal {
+  top: $header-height;
+  min-height: calc(100vh - #{$header-height});
+  max-height: calc(100vh - #{$header-height});
+  box-shadow: -1px 0px 3px rgba(0, 0, 0, 0.14);
+  min-width: $logs-modal-width;
+  max-width: $logs-modal-width;
+  right: -$logs-modal-width;
+  transition: 0.25s;
+  &.show {
+    right: 0px;
+  }
+  .header {
+    min-height: 32px;
+    max-height: 32px;
+  }
+  .logs {
+    overflow: auto;
+    min-height: calc(100vh - 32px - #{$header-height});
+    max-height: calc(100vh - 32px - #{$header-height});
+    padding-bottom: 30px !important;
+    background: #000;
+    color: #fff;
+  }
+  .logs-spinner {
+    bottom: 16px;
+    left: 12px;
+  }
+}

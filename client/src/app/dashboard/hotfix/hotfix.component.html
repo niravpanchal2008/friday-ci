@@ -1,0 +1,95 @@
+<div class="wrapper">
+  <div class="d-flex flex-wrap justify-content-between p-3">
+    <div class="repo-card card m-2" *ngFor="let repo of repoList" (click)="openHotfixModal(repo)">
+      <div class="card-body d-flex flex-column">
+        <span class="font-weight-bold font-13">{{repo.name}}</span>
+        <span class="text-muted font-12">{{repo.url}}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<ng-template #triggerHotfixModal>
+  <div class="modal-header">
+    <div class="modal-title font-weight-bold">Trigger Hotfix - <span class="text-primary">{{selectedRepo?.name}}</span>
+    </div>
+  </div>
+  <div class="modal-body">
+    <form [formGroup]="form">
+      <div class="form-group">
+        <label for="repo">Name</label>
+        <input type="text" class="form-control" name="repo" formControlName="repo">
+      </div>
+      <div class="form-group">
+        <label for="branch">Branch</label>
+        <input type="text" class="form-control" name="branch" formControlName="branch"
+          [ngClass]="{'is-invalid': form.get('branch').invalid}">
+      </div>
+      <div class="form-group">
+        <label for="hotfix">Hotfix No</label>
+        <input type="number" class="form-control" name="hotfix" formControlName="hotfix"
+          [ngClass]="{'is-invalid': form.get('hotfix').invalid}">
+      </div>
+      <div class="d-flex justify-content-between w-100">
+        <div class="form-group">
+          <div class="custom-control custom-checkbox">
+            <input type="checkbox" class="custom-control-input" id="cleanBuild" name="cleanBuild"
+              formControlName="cleanBuild">
+            <label class="custom-control-label" for="cleanBuild"
+              ngbTooltip="You don't need a description for this!">Clean Build</label>
+          </div>
+        </div>
+        <div *ngIf="selectedRepo.short" class="form-group">
+          <div class="custom-control custom-checkbox">
+            <input type="checkbox" class="custom-control-input" id="deploy" name="deploy" formControlName="deploy">
+            <label class="custom-control-label" for="deploy"
+              ngbTooltip="This will deploy the image to k8s">Deploy</label>
+          </div>
+        </div>
+        <div *ngIf="selectedRepo.short" class="form-group">
+          <div class="custom-control custom-checkbox">
+            <input type="checkbox" class="custom-control-input" id="upload" name="upload" formControlName="upload">
+            <label class="custom-control-label" for="upload"
+              ngbTooltip="This will upload the image to e-delivery">Release</label>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="form.get('deploy').value" class="form-group">
+        <label for="namespace">Namespace</label>
+        <input type="text" class="form-control" name="namespace" formControlName="namespace"
+          [ngClass]="{'is-invalid': form.get('namespace').invalid}">
+      </div>
+      <div *ngIf="selectedRepo.short=='SM' && form.get('cleanBuild').value && form.get('upload').value"
+        class="form-group">
+        <div class="custom-control custom-checkbox">
+          <input type="checkbox" class="custom-control-input" id="baseImage" name="baseImage"
+            formControlName="baseImage">
+          <label class="custom-control-label" for="baseImage"
+            ngbTooltip="This will upload the new base image to e-delivery">Release New Base Image</label>
+        </div>
+      </div>
+      <div *ngIf="form.get('deploy').value" class="form-group">
+        <label for="machine">Machine</label>
+        <select name="machine" id="machine" class="custom-select" formControlName="machine"
+          [ngClass]="{'is-invalid': form.get('machine').invalid}">
+          <option value="">---select---</option>
+          <option *ngFor="let item of machineList" [value]="item._id">{{item.name}}</option>
+        </select>
+      </div>
+      <div *ngIf="form.get('upload').value" class="form-group">
+        <label for="code">Release Authorization Code</label>
+        <input type="text" class="form-control" name="code" formControlName="code"
+          [ngClass]="{'is-invalid': form.get('code').invalid}">
+      </div>
+      <span *ngIf="imageTag" class="text-muted">IMAGE TAG : {{imageTag}}</span>
+    </form>
+  </div>
+  <div class="modal-footer d-flex justify-content-end p-3">
+    <button type="button" class="btn btn-dark mr-3" (click)="triggerHotfixModalRef.close(false)">Cancel</button>
+    <button type="button" class="btn btn-primary" (click)="triggerHotfix()" [disabled]="form.invalid">
+      <span *ngIf="!form.get('deploy').value">Build</span>
+      <span *ngIf="form.get('deploy').value">Build &amp; Deploy</span>
+    </button>
+  </div>
+</ng-template>
