@@ -33,6 +33,9 @@ log4js.configure({
     categories: { default: { appenders: ['out', 'server'], level: LOG_LEVEL } }
 });
 
+
+
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.json());
 app.use(cookieParser());
